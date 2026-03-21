@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { initDatabase } from '../src/database/database';
-import db from '../src/database/database';
+import db, { initDatabase } from '../src/database/database';
 import CadastroScreen from '../src/screens/CadastroScreen';
-import HomeScreen from '../src/screens/HomeScreen';
 import CadastroTarefaScreen from '../src/screens/CadastroTarefaScreen';
-import MudarPerfilScreen from '../src/screens/MudarPerfilScreen';
 import EditarPerfilScreen from '../src/screens/EditarPerfilScreen';
+import HistoricoScreen from '../src/screens/HistoricoScreen';
+import HomeScreen from '../src/screens/HomeScreen';
+import MudarPerfilScreen from '../src/screens/MudarPerfilScreen';
 
 export default function Index() {
   const [carregando, setCarregando] = useState(true);
@@ -31,7 +31,7 @@ export default function Index() {
     return (
       <CadastroScreen
         primeroAcesso={false}
-        onCadastro={(id) => { setTela('mudarPerfil'); }}
+        onCadastro={() => setTela('mudarPerfil')}
         onVoltar={() => setTela('mudarPerfil')}
       />
     );
@@ -72,6 +72,15 @@ export default function Index() {
     );
   }
 
+  if (tela === 'historico') {
+    return (
+      <HistoricoScreen
+        idUsuario={idUsuario}
+        onVoltar={() => setTela('home')}
+      />
+    );
+  }
+
   return (
     <HomeScreen
       key={tela}
@@ -79,6 +88,7 @@ export default function Index() {
       onAddTarefa={() => { setTarefaEditando(null); setTela('cadastroTarefa'); }}
       onEditTarefa={(tarefa) => { setTarefaEditando(tarefa); setTela('cadastroTarefa'); }}
       onMudarPerfil={() => setTela('mudarPerfil')}
+      onHistorico={() => setTela('historico')}
     />
   );
 }

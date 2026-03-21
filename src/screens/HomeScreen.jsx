@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, Alert } from 'react-native';
-import db from '../database/database';
+import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ICONES } from '../assets/icons/icones';
+import { COLORS } from '../constants/theme';
+import db from '../database/database';
 
 const PERIODOS = [
   { label: 'Pela Manhã', inicio: 5, fim: 11 },
@@ -9,7 +10,7 @@ const PERIODOS = [
   { label: 'Pela Noite', inicio: 18, fim: 23 },
 ];
 
-export default function HomeScreen({ idUsuario, onAddTarefa, onEditTarefa, onMudarPerfil }) {
+export default function HomeScreen({ idUsuario, onAddTarefa, onEditTarefa, onMudarPerfil, onHistorico }) {
   const [tarefas, setTarefas] = useState([]);
   const [perfil, setPerfil] = useState(null);
   const [menuTarefa, setMenuTarefa] = useState(null);
@@ -90,9 +91,14 @@ export default function HomeScreen({ idUsuario, onAddTarefa, onEditTarefa, onMud
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.saudacao}>Olá, {perfil?.name} 👋</Text>
-        <TouchableOpacity style={styles.botaoMudar} onPress={onMudarPerfil}>
-          <Text style={styles.botaoMudarTexto}>Mudar Perfil</Text>
-        </TouchableOpacity>
+        <View style={styles.headerBotoes}>
+          <TouchableOpacity style={styles.botaoSecundario} onPress={onHistorico}>
+            <Text style={styles.botaoSecundarioTexto}>📋</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.botaoMudar} onPress={onMudarPerfil}>
+            <Text style={styles.botaoMudarTexto}>Mudar Perfil</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {PERIODOS.map(periodo => {
@@ -213,4 +219,7 @@ const styles = StyleSheet.create({
   modalOpcao: { padding: 16 },
   modalOpcaoTexto: { fontSize: 16, color: '#222' },
   modalExcluir: { color: '#e53935' },
+  headerBotoes: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  botaoSecundario: { backgroundColor: COLORS.surface, borderRadius: 8, padding: 10, borderWidth: 2, borderColor: COLORS.primary },
+  botaoSecundarioTexto: { fontSize: 20 },
 });
