@@ -8,13 +8,19 @@ import { ICONES_LISTA } from '../assets/icons/icones';
 
 const DIAS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
-export default function CadastroTarefaScreen({ idUsuario, onSalvar, onVoltar }) {
-  const [titulo, setTitulo] = useState('');
-  const [subtitulo, setSubtitulo] = useState('');
-  const [horario, setHorario] = useState('08:00');
-  const [icone, setIcone] = useState('remedio');
-  const [descricao, setDescricao] = useState('');
-  const [diasSelecionados, setDiasSelecionados] = useState([1,1,1,1,1,1,1]);
+export default function CadastroTarefaScreen({ idUsuario, tarefaExistente, onSalvar, onVoltar }) {
+  const editando = !!tarefaExistente;
+
+  const [titulo, setTitulo] = useState(tarefaExistente?.titulo || '');
+  const [subtitulo, setSubtitulo] = useState(tarefaExistente?.subtitulo_instrucao || '');
+  const [horario, setHorario] = useState(tarefaExistente?.horario_programado || '08:00');
+  const [icone, setIcone] = useState(tarefaExistente?.icone_tipo || 'remedio');
+  const [descricao, setDescricao] = useState(tarefaExistente?.descricao || '');
+  const [diasSelecionados, setDiasSelecionados] = useState(
+    tarefaExistente?.frequencia_dias
+      ? tarefaExistente.frequencia_dias.split('').map(Number)
+      : [1,1,1,1,1,1,1]
+  );
 
   const formularioValido = titulo.trim().length > 0 && horario.trim().length > 0;
 
@@ -29,12 +35,19 @@ export default function CadastroTarefaScreen({ idUsuario, onSalvar, onVoltar }) 
       Alert.alert('Atenção', 'Selecione pelo menos um dia da semana.');
       return;
     }
-    db.runSync(
-      `INSERT INTO medicamento 
-        (id_usuario, titulo, subtitulo_instrucao, horario_programado, icone_tipo, frequencia_dias, ativo)
-       VALUES (?, ?, ?, ?, ?, ?, 1)`,
-      [idUsuario, titulo.trim(), subtitulo.trim(), horario.trim(), icone, diasSelecionados.join('')]
-    );
+    if (editando) {
+      db.runSync(
+        `UPDATE medicamento SET titulo=?, subtitulo_instrucao=?, horario_programado=?, icone_tipo=?, frequencia_dias=?
+         WHERE id_medicamento=?`,
+        [titulo.trim(), subtitulo.trim(), horario.trim(), icone, diasSelecionados.join(''), tarefaExistente.id_medicamento]
+      );
+    } else {
+      db.runSync(
+        `INSERT INTO medicamento (id_usuario, titulo, subtitulo_instrucao, horario_programado, icone_tipo, frequencia_dias, ativo)
+         VALUES (?, ?, ?, ?, ?, ?, 1)`,
+        [idUsuario, titulo.trim(), subtitulo.trim(), horario.trim(), icone, diasSelecionados.join('')]
+      );
+    }
     onSalvar();
   }
 
@@ -43,6 +56,8 @@ export default function CadastroTarefaScreen({ idUsuario, onSalvar, onVoltar }) 
       <TouchableOpacity style={styles.voltar} onPress={onVoltar}>
         <Text style={styles.voltarTexto}>← Voltar</Text>
       </TouchableOpacity>
+
+      <Text style={styles.titulo}>{editando ? 'Editar Tarefa' : 'Nova Tarefa'}</Text>
 
       <Text style={styles.secao}>Ícone</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.iconesList}>
@@ -113,7 +128,7 @@ export default function CadastroTarefaScreen({ idUsuario, onSalvar, onVoltar }) 
         onPress={salvar}
         disabled={!formularioValido}
       >
-        <Text style={styles.botaoTexto}>Salvar</Text>
+        <Text style={styles.botaoTexto}>{editando ? 'Salvar alterações' : 'Salvar'}</Text>
       </TouchableOpacity>
 
       <View style={{ height: 40 }} />
@@ -123,8 +138,9 @@ export default function CadastroTarefaScreen({ idUsuario, onSalvar, onVoltar }) 
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', padding: 20 },
-  voltar: { marginTop: 40, marginBottom: 16 },
+  voltar: { marginTop: 40, marginBottom: 8 },
   voltarTexto: { fontSize: 16, color: '#1a3cff', fontWeight: '600' },
+  titulo: { fontSize: 22, fontWeight: 'bold', color: '#222', marginBottom: 8 },
   secao: { fontSize: 14, fontWeight: '700', color: '#555', marginTop: 16, marginBottom: 8 },
   input: { backgroundColor: '#f0f0f0', borderRadius: 8, padding: 12, fontSize: 16 },
   inputMultiline: { height: 100, textAlignVertical: 'top' },
