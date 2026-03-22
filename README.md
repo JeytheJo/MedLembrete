@@ -25,5 +25,3 @@ npx expo start
 
 ## Status
 🚧 Em desenvolvimento
-
-EOF
