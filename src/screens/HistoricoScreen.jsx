@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { ICONES } from '../assets/icons/icones';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import db from '../database/database';
 import BotaoVoltar from '../components/BotaoVoltar';
 import { COLORS, FONTS, SPACING } from '../constants/theme';
-import db from '../database/database';
+import { ICONES } from '../assets/icons/icones';
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -13,10 +13,16 @@ function gerarUltimos7Dias() {
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
+    const diaSemana = d.getDay();
+    const label = i === 0
+      ? 'Hoje'
+      : i === 1
+      ? 'Ontem'
+      : `${DIAS_SEMANA[diaSemana]}, ${d.getDate()} ${MESES[d.getMonth()]}`;
     dias.push({
       data: d.toISOString().split('T')[0],
-      label: i === 0 ? 'Hoje' : i === 1 ? 'Ontem' : `${DIAS_SEMANA[d.getDay()]}, ${d.getDate()} ${MESES[d.getMonth()]}`,
-      diaSemana: d.getDay(),
+      label,
+      diaSemana,
     });
   }
   return dias.reverse();
@@ -70,12 +76,11 @@ export default function HistoricoScreen({ idUsuario, onVoltar }) {
         const { total, feitas } = resumoDia(data);
         const aberto = diaAberto === data;
         const todosFei = total > 0 && feitas === total;
-        const nenhumFeito = feitas === 0;
 
         return (
           <View key={data} style={styles.diaContainer}>
             <TouchableOpacity
-              style={[styles.diaHeader, todosFei && styles.diaHeaderCompleto]}
+              style={[styles.diaHeader, aberto && todosFei && styles.diaHeaderCompleto]}
               onPress={() => setDiaAberto(aberto ? null : data)}
               activeOpacity={0.7}
             >
@@ -89,20 +94,7 @@ export default function HistoricoScreen({ idUsuario, onVoltar }) {
                   </Text>
                 )}
               </View>
-              <View style={styles.diaHeaderDir}>
-                {total > 0 && (
-                  <View style={[
-                    styles.badge,
-                    todosFei && styles.badgeCompleto,
-                    nenhumFeito && styles.badgeVazio,
-                  ]}>
-                    <Text style={styles.badgeTexto}>
-                      {todosFei ? '✓' : `${feitas}/${total}`}
-                    </Text>
-                  </View>
-                )}
-                <Text style={styles.seta}>{aberto ? '▲' : '▼'}</Text>
-              </View>
+              <Text style={styles.seta}>▼</Text>
             </TouchableOpacity>
 
             {aberto && (
@@ -115,7 +107,11 @@ export default function HistoricoScreen({ idUsuario, onVoltar }) {
                     const feito = tarefa.status_dia === 'feito';
                     return (
                       <View key={tarefa.id_medicamento} style={[styles.tarefaCard, feito && styles.tarefaCardFeito]}>
-                        <Text style={styles.tarefaEmoji}>{icone.emoji}</Text>
+                        {icone.imagem ? (
+                          <Image source={icone.imagem} style={styles.tarefaIconeImagem} />
+                        ) : (
+                          <Text style={styles.tarefaEmoji}>{icone.emoji}</Text>
+                        )}
                         <View style={styles.tarefaInfo}>
                           <Text style={styles.tarefaTitulo}>{tarefa.titulo}</Text>
                           <Text style={styles.tarefaHorario}>{tarefa.horario_programado}</Text>
@@ -142,25 +138,42 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background, padding: SPACING.lg },
   titulo: { fontSize: FONTS.title, fontWeight: 'bold', color: COLORS.textPrimary, marginBottom: SPACING.xs },
   subtitulo: { fontSize: FONTS.medium, color: COLORS.textSecondary, marginBottom: SPACING.lg },
-  diaContainer: { marginBottom: SPACING.md, borderRadius: 16, borderWidth: 2, borderColor: COLORS.border, overflow: 'hidden' },
-  diaHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: SPACING.md, backgroundColor: COLORS.surface },
+  diaContainer: {
+    marginBottom: SPACING.sm,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+  },
+  diaHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: SPACING.md,
+    backgroundColor: COLORS.surface,
+    minHeight: 81,
+  },
   diaHeaderCompleto: { backgroundColor: '#eef0ff' },
   diaHeaderEsq: { flex: 1 },
   diaLabel: { fontSize: FONTS.large, fontWeight: 'bold', color: COLORS.textPrimary },
-  diaResumo: { fontSize: FONTS.medium, color: COLORS.textSecondary, marginTop: 2 },
+  diaResumo: { fontSize: FONTS.medium, color: COLORS.textSecondary, marginTop: 4 },
   diaResumoCompleto: { color: COLORS.primary },
-  diaResumoVazio: { fontSize: FONTS.medium, color: COLORS.textMuted, marginTop: 2 },
-  diaHeaderDir: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-  badge: { backgroundColor: COLORS.border, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  badgeCompleto: { backgroundColor: COLORS.primary },
-  badgeVazio: { backgroundColor: COLORS.disabled },
-  badgeTexto: { color: COLORS.white, fontWeight: 'bold', fontSize: FONTS.small },
-  seta: { fontSize: FONTS.medium, color: COLORS.textMuted },
+  diaResumoVazio: { fontSize: FONTS.medium, color: COLORS.textMuted, marginTop: 4 },
+  seta: { fontSize: FONTS.large, color: COLORS.textMuted },
   diaConteudo: { padding: SPACING.md, backgroundColor: COLORS.background },
   vazioTexto: { fontSize: FONTS.medium, color: COLORS.textMuted, textAlign: 'center', paddingVertical: SPACING.md },
-  tarefaCard: { flexDirection: 'row', alignItems: 'center', padding: SPACING.md, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, marginBottom: SPACING.sm },
+  tarefaCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: SPACING.md,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: SPACING.sm,
+  },
   tarefaCardFeito: { borderColor: COLORS.primary, backgroundColor: '#f0f4ff' },
   tarefaEmoji: { fontSize: 28, marginRight: SPACING.md },
+  tarefaIconeImagem: { width: 36, height: 36, resizeMode: 'contain', marginRight: SPACING.md },
   tarefaInfo: { flex: 1 },
   tarefaTitulo: { fontSize: FONTS.large, fontWeight: 'bold', color: COLORS.textPrimary },
   tarefaHorario: { fontSize: FONTS.medium, color: COLORS.primary, marginTop: 2 },
