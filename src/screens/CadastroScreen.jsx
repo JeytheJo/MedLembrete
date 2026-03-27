@@ -1,4 +1,5 @@
 import { Modak_400Regular, useFonts } from '@expo-google-fonts/modak';
+import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import {
   Alert, Image,
@@ -17,11 +18,55 @@ export default function CadastroScreen({ onCadastro, onVoltar, primeroAcesso = t
   const [nome, setNome] = useState('');
   const [idade, setIdade] = useState('');
   const [descricao, setDescricao] = useState('');
+  const [foto, setFoto] = useState(null);
 
   const [fontLoaded] = useFonts({ Modak_400Regular });
   if (!fontLoaded) return null;
 
   const formularioValido = nome.trim().length > 0 && idade.trim().length > 0;
+
+  async function escolherFoto() {
+    Alert.alert(
+      'Foto de perfil',
+      'Como deseja adicionar a foto?',
+      [
+        {
+          text: 'Câmera',
+          onPress: async () => {
+            const permissao = await ImagePicker.requestCameraPermissionsAsync();
+            if (!permissao.granted) {
+              Alert.alert('Permissão necessária', 'Precisamos de acesso à câmera.');
+              return;
+            }
+            const result = await ImagePicker.launchCameraAsync({
+              allowsEditing: true,
+              aspect: [1, 1],
+              quality: 0.7,
+            });
+            if (!result.canceled) setFoto(result.assets[0].uri);
+          }
+        },
+        {
+          text: 'Galeria',
+          onPress: async () => {
+            const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!permissao.granted) {
+              Alert.alert('Permissão necessária', 'Precisamos de acesso à galeria.');
+              return;
+            }
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing: true,
+              aspect: [1, 1],
+              quality: 0.7,
+            });
+            if (!result.canceled) setFoto(result.assets[0].uri);
+          }
+        },
+        { text: 'Cancelar', style: 'cancel' }
+      ]
+    );
+  }
 
   function salvar() {
     if (nome.trim().length < 2) {
@@ -34,8 +79,8 @@ export default function CadastroScreen({ onCadastro, onVoltar, primeroAcesso = t
       return;
     }
     db.runSync(
-      'INSERT INTO perfil_usuario (name, idade, descricao) VALUES (?, ?, ?)',
-      [nome.trim(), idade.trim(), descricao.trim()]
+      'INSERT INTO perfil_usuario (name, idade, descricao, foto_path) VALUES (?, ?, ?, ?)',
+      [nome.trim(), idade.trim(), descricao.trim(), foto || '']
     );
     const novo = db.getFirstSync('SELECT id_usuario FROM perfil_usuario ORDER BY id_usuario DESC LIMIT 1');
     onCadastro(novo.id_usuario);
@@ -47,10 +92,7 @@ export default function CadastroScreen({ onCadastro, onVoltar, primeroAcesso = t
 
       {primeroAcesso && (
         <View style={styles.logoContainer}>
-          <Image
-            source={require('../../assets/images/icon.png')}
-            style={styles.logoIcone}
-          />
+          <Image source={require('../../assets/images/icon.png')} style={styles.logoIcone} />
           <View style={styles.logoTextoContainer}>
             <Text style={styles.logoTo}>Tô </Text>
             <Text style={styles.logoLembrado}>Lembrado</Text>
@@ -67,9 +109,11 @@ export default function CadastroScreen({ onCadastro, onVoltar, primeroAcesso = t
         <Text style={styles.titulo}>Novo Perfil</Text>
       )}
 
-      <TouchableOpacity style={styles.avatarContainer} activeOpacity={0.8}>
+      <TouchableOpacity style={styles.avatarContainer} onPress={escolherFoto} activeOpacity={0.8}>
         <View style={styles.avatar}>
-          {nome.trim().length > 0 ? (
+          {foto ? (
+            <Image source={{ uri: foto }} style={styles.avatarFoto} />
+          ) : nome.trim().length > 0 ? (
             <Text style={styles.avatarLetra}>{nome.charAt(0).toUpperCase()}</Text>
           ) : (
             <Text style={styles.avatarQuestao}>?</Text>
@@ -144,7 +188,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.xs,
+    overflow: 'hidden',
   },
+  avatarFoto: { width: 100, height: 100, borderRadius: 50 },
   avatarLetra: { fontSize: 48, color: COLORS.white, fontWeight: 'bold' },
   avatarQuestao: { fontSize: 48, color: COLORS.white, fontWeight: 'bold' },
   avatarDica: { fontSize: FONTS.medium, color: COLORS.textSecondary },

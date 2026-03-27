@@ -88,88 +88,82 @@ export default function HomeScreen({ idUsuario, onAddTarefa, onEditTarefa, onMud
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.conteudo}>
+    <View style={styles.wrapper}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.conteudo}>
 
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerEsq}>
-          <View style={styles.avatarPequeno}>
-            <TouchableOpacity 
-            style={styles.headerEsq} 
-            onPress={onEditarPerfil} 
-            activeOpacity={0.7}
-          >
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.headerEsq} onPress={onEditarPerfil} activeOpacity={0.7}>
             <Text style={styles.avatarPequenoTexto}>👤</Text>
+            <Text style={styles.saudacao}>Olá, {perfil?.name}</Text>
           </TouchableOpacity>
+          <View style={styles.headerDir}>
+            <TouchableOpacity style={styles.botaoIcone} onPress={onHistorico}>
+              <Text style={styles.botaoIconeTexto}>📋</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.botaoMudar} onPress={onMudarPerfil}>
+              <Text style={styles.botaoMudarTexto}>Mudar Perfil</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.saudacao}>Olá, {perfil?.name}</Text>
         </View>
-        <View style={styles.headerDir}>
-          <TouchableOpacity style={styles.botaoIcone} onPress={onHistorico}>
-            <Text style={styles.botaoIconeTexto}>📋</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.botaoMudar} onPress={onMudarPerfil}>
-            <Text style={styles.botaoMudarTexto}>Mudar Perfil</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
 
-      {/* Lista de tarefas */}
-      {PERIODOS.map(periodo => {
-        const lista = getTarefasPorPeriodo(periodo.inicio, periodo.fim);
-        if (lista.length === 0) return null;
-        return (
-          <View key={periodo.label}>
-            <Text style={styles.periodoTitulo}>{periodo.label}</Text>
-            {lista.map(tarefa => {
-              const icone = ICONES[tarefa.icone_tipo] || ICONES.remedio;
-              const feito = tarefa.status_hoje === 'feito';
-              return (
-                <View key={tarefa.id_medicamento} style={[styles.card, feito && styles.cardFeito]}>
-                  <View style={styles.cardTopo}>
-                    {icone.imagem ? (
-                      <Image source={icone.imagem} style={styles.cardIconeImagem} />
-                    ) : (
-                      <Text style={styles.cardEmoji}>{icone.emoji}</Text>
-                    )}
-                    <View style={styles.cardTextos}>
-                      <Text style={styles.cardTitulo}>{tarefa.titulo}</Text>
-                      <Text style={styles.cardSubtitulo}>{tarefa.subtitulo_instrucao}</Text>
-                      <Text style={styles.cardHorario}>{tarefa.horario_programado}</Text>
+        {/* Lista de tarefas */}
+        {PERIODOS.map(periodo => {
+          const lista = getTarefasPorPeriodo(periodo.inicio, periodo.fim);
+          if (lista.length === 0) return null;
+          return (
+            <View key={periodo.label}>
+              <Text style={styles.periodoTitulo}>{periodo.label}</Text>
+              {lista.map(tarefa => {
+                const icone = ICONES[tarefa.icone_tipo] || ICONES.remedio;
+                const feito = tarefa.status_hoje === 'feito';
+                return (
+                  <View key={tarefa.id_medicamento} style={[styles.card, feito && styles.cardFeito]}>
+                    <View style={styles.cardTopo}>
+                      {icone.imagem ? (
+                        <Image source={icone.imagem} style={styles.cardIconeImagem} />
+                      ) : (
+                        <Text style={styles.cardEmoji}>{icone.emoji}</Text>
+                      )}
+                      <View style={styles.cardTextos}>
+                        <Text style={styles.cardTitulo}>{tarefa.titulo}</Text>
+                        <Text style={styles.cardSubtitulo}>{tarefa.subtitulo_instrucao}</Text>
+                        <Text style={styles.cardHorario}>{tarefa.horario_programado}</Text>
+                      </View>
+                      <TouchableOpacity style={styles.menuBotao} onPress={() => setMenuTarefa(tarefa)}>
+                        <Text style={styles.menuPontos}>⋮</Text>
+                      </TouchableOpacity>
                     </View>
-                    <TouchableOpacity style={styles.menuBotao} onPress={() => setMenuTarefa(tarefa)}>
-                      <Text style={styles.menuPontos}>⋮</Text>
+                    <TouchableOpacity
+                      style={[styles.botaoStatus, feito && styles.botaoFeito]}
+                      onPress={() => marcarStatus(tarefa.id_medicamento, feito ? 'pendente' : 'feito')}
+                    >
+                      <Text style={styles.botaoStatusTexto}>
+                        {feito ? 'Feito! ✓' : 'Não realizada!'}
+                      </Text>
                     </TouchableOpacity>
                   </View>
-                  <TouchableOpacity
-                    style={[styles.botaoStatus, feito && styles.botaoFeito]}
-                    onPress={() => marcarStatus(tarefa.id_medicamento, feito ? 'pendente' : 'feito')}
-                  >
-                    <Text style={styles.botaoStatusTexto}>
-                      {feito ? 'Feito! ✓' : 'Não realizada!'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              );
-            })}
+                );
+              })}
+            </View>
+          );
+        })}
+
+        {/* Tela vazia */}
+        {tarefas.length === 0 && (
+          <View style={styles.vazio}>
+            <Text style={styles.vazioTitulo}>Nenhuma tarefa para hoje!</Text>
+            <Text style={styles.vazioSub}>Toque em <Text style={styles.vazioPlus}>+</Text> para adicionar um lembrete</Text>
           </View>
-        );
-      })}
+        )}
 
-      {/* Tela vazia */}
-      {tarefas.length === 0 && (
-        <View style={styles.vazio}>
-          <Text style={styles.vazioTitulo}>Nenhuma tarefa para hoje!</Text>
-          <Text style={styles.vazioSub}>Toque em <Text style={styles.vazioPlus}>+</Text> para adicionar um lembrete</Text>
-        </View>
-      )}
+        <View style={{ height: 100 }} />
+      </ScrollView>
 
-      {/* FAB */}
+      {/* FAB fixo */}
       <TouchableOpacity style={styles.fab} onPress={onAddTarefa}>
         <Text style={styles.fabTexto}>+</Text>
       </TouchableOpacity>
-
-      <View style={{ height: 80 }} />
 
       {/* Modal menu */}
       <Modal
@@ -197,14 +191,14 @@ export default function HomeScreen({ idUsuario, onAddTarefa, onEditTarefa, onMud
           </View>
         </TouchableOpacity>
       </Modal>
-
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  conteudo: { paddingBottom: 80 },
+  wrapper: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1 },
+  conteudo: { paddingBottom: 100 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -214,8 +208,7 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.md,
   },
   headerEsq: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  avatarPequeno: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.surface, justifyContent: 'center', alignItems: 'center' },
-  avatarPequenoTexto: { fontSize: 20 },
+  avatarPequenoTexto: { fontSize: 24 },
   saudacao: { fontSize: FONTS.large, fontWeight: 'bold', color: COLORS.textPrimary },
   headerDir: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   botaoIcone: {
@@ -259,17 +252,17 @@ const styles = StyleSheet.create({
   vazioPlus: { color: COLORS.primary, fontWeight: 'bold' },
   fab: {
     position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    bottom: 52,
+    right: 40,
+    width: 78,
+    height: 83,
+    borderRadius: 41,
     backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 5,
   },
-  fabTexto: { color: COLORS.white, fontSize: 32, lineHeight: 36 },
+  fabTexto: { color: COLORS.white, fontSize: 36, lineHeight: 40 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   modalBox: { backgroundColor: COLORS.white, borderRadius: 16, width: 292, elevation: 8, overflow: 'hidden' },
   modalData: { fontSize: FONTS.small, fontWeight: 'bold', color: COLORS.textMuted, padding: SPACING.md, paddingBottom: 8 },

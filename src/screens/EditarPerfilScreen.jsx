@@ -1,12 +1,14 @@
+import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import {
-  View, Text, TextInput, ScrollView,
-  StyleSheet, Alert, TouchableOpacity
+  Alert, Image, ScrollView,
+  StyleSheet, Text, TextInput,
+  TouchableOpacity, View
 } from 'react-native';
-import db from '../database/database';
-import BotaoVoltar from '../components/BotaoVoltar';
 import BotaoAcessivel from '../components/BotaoAcessivel';
-import { COLORS, FONTS, SPACING, MIN_TOUCH } from '../constants/theme';
+import BotaoVoltar from '../components/BotaoVoltar';
+import { COLORS, FONTS, MIN_TOUCH, SPACING } from '../constants/theme';
+import db from '../database/database';
 
 export default function EditarPerfilScreen({ idUsuario, onSalvar, onVoltar }) {
   const perfil = db.getFirstSync('SELECT * FROM perfil_usuario WHERE id_usuario = ?', [idUsuario]);
@@ -14,9 +16,53 @@ export default function EditarPerfilScreen({ idUsuario, onSalvar, onVoltar }) {
   const [nome, setNome] = useState(perfil?.name || '');
   const [idade, setIdade] = useState(perfil?.idade || '');
   const [descricao, setDescricao] = useState(perfil?.descricao || '');
-  const [observacoes, setObservacoes] = useState(perfil?.observacoes_gerais || '');
+  const [foto, setFoto] = useState(perfil?.foto_path || null);
 
   const formularioValido = nome.trim().length > 0 && idade.trim().length > 0;
+
+  async function escolherFoto() {
+    Alert.alert(
+      'Foto de perfil',
+      'Como deseja adicionar a foto?',
+      [
+        {
+          text: 'Câmera',
+          onPress: async () => {
+            const permissao = await ImagePicker.requestCameraPermissionsAsync();
+            if (!permissao.granted) {
+              Alert.alert('Permissão necessária', 'Precisamos de acesso à câmera.');
+              return;
+            }
+            const result = await ImagePicker.launchCameraAsync({
+              allowsEditing: true,
+              aspect: [1, 1],
+              quality: 0.7,
+            });
+            if (!result.canceled) setFoto(result.assets[0].uri);
+          }
+        },
+        {
+          text: 'Galeria',
+          onPress: async () => {
+            const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!permissao.granted) {
+              Alert.alert('Permissão necessária', 'Precisamos de acesso à galeria.');
+              return;
+            }
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing: true,
+              aspect: [1, 1],
+              quality: 0.7,
+            });
+            if (!result.canceled) setFoto(result.assets[0].uri);
+          }
+        },
+        { text: 'Remover foto', style: 'destructive', onPress: () => setFoto(null) },
+        { text: 'Cancelar', style: 'cancel' }
+      ]
+    );
+  }
 
   function salvar() {
     if (nome.trim().length < 2) {
@@ -29,8 +75,8 @@ export default function EditarPerfilScreen({ idUsuario, onSalvar, onVoltar }) {
       return;
     }
     db.runSync(
-      `UPDATE perfil_usuario SET name=?, idade=?, descricao=?, observacoes_gerais=? WHERE id_usuario=?`,
-      [nome.trim(), idade.trim(), descricao.trim(), observacoes.trim(), idUsuario]
+      `UPDATE perfil_usuario SET name=?, idade=?, descricao=?, foto_path=? WHERE id_usuario=?`,
+      [nome.trim(), idade.trim(), descricao.trim(), foto || '', idUsuario]
     );
     Alert.alert('Sucesso!', 'Perfil atualizado com sucesso.', [
       { text: 'OK', onPress: onSalvar }
@@ -40,17 +86,18 @@ export default function EditarPerfilScreen({ idUsuario, onSalvar, onVoltar }) {
   return (
     <ScrollView style={styles.container}>
       <BotaoVoltar onPress={onVoltar} />
-
       <Text style={styles.titulo}>Editar Perfil</Text>
 
-      <View style={styles.avatarContainer}>
+      <TouchableOpacity style={styles.avatarContainer} onPress={escolherFoto} activeOpacity={0.8}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarTexto}>
-            {nome.charAt(0).toUpperCase() || '?'}
-          </Text>
+          {foto ? (
+            <Image source={{ uri: foto }} style={styles.avatarFoto} />
+          ) : (
+            <Text style={styles.avatarTexto}>{nome.charAt(0).toUpperCase() || '?'}</Text>
+          )}
         </View>
-        <Text style={styles.avatarDica}>Foto de perfil em breve</Text>
-      </View>
+        <Text style={styles.avatarDica}>Alterar foto de perfil?</Text>
+      </TouchableOpacity>
 
       <Text style={styles.secao}>Nome</Text>
       <TextInput
@@ -84,17 +131,6 @@ export default function EditarPerfilScreen({ idUsuario, onSalvar, onVoltar }) {
         numberOfLines={3}
       />
 
-      <Text style={styles.secao}>Observações gerais</Text>
-      <TextInput
-        style={[styles.input, styles.inputMultiline]}
-        placeholder="Ex: Alérgico a dipirona, usa marca-passo..."
-        placeholderTextColor={COLORS.textMuted}
-        value={observacoes}
-        onChangeText={setObservacoes}
-        multiline
-        numberOfLines={4}
-      />
-
       <BotaoAcessivel
         titulo="Salvar alterações"
         onPress={salvar}
@@ -119,9 +155,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.sm,
+    overflow: 'hidden',
   },
+  avatarFoto: { width: 100, height: 100, borderRadius: 50 },
   avatarTexto: { fontSize: 48, color: COLORS.white, fontWeight: 'bold' },
-  avatarDica: { fontSize: FONTS.small, color: COLORS.textMuted },
+  avatarDica: { fontSize: FONTS.medium, color: COLORS.textSecondary },
   secao: { fontSize: FONTS.medium, fontWeight: '700', color: COLORS.textSecondary, marginTop: SPACING.lg, marginBottom: SPACING.sm },
   input: {
     backgroundColor: COLORS.surface,

@@ -92,6 +92,7 @@ export default function Index() {
       <HistoricoScreen
         idUsuario={idUsuario}
         onVoltar={() => setTela('home')}
+        onEditTarefa={(tarefa) => { setTarefaEditando(tarefa); setTela('cadastroTarefa'); }}
       />
     );
   }

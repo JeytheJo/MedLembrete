@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import db from '../database/database';
+import { Alert, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ICONES } from '../assets/icons/icones';
 import BotaoVoltar from '../components/BotaoVoltar';
 import { COLORS, FONTS, SPACING } from '../constants/theme';
-import { ICONES } from '../assets/icons/icones';
+import db from '../database/database';
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -19,19 +19,16 @@ function gerarUltimos7Dias() {
       : i === 1
       ? 'Ontem'
       : `${DIAS_SEMANA[diaSemana]}, ${d.getDate()} ${MESES[d.getMonth()]}`;
-    dias.push({
-      data: d.toISOString().split('T')[0],
-      label,
-      diaSemana,
-    });
+    dias.push({ data: d.toISOString().split('T')[0], label, diaSemana });
   }
   return dias.reverse();
 }
 
-export default function HistoricoScreen({ idUsuario, onVoltar }) {
+export default function HistoricoScreen({ idUsuario, onVoltar, onEditTarefa }) {
   const [dias, setDias] = useState([]);
   const [diaAberto, setDiaAberto] = useState(null);
   const [registros, setRegistros] = useState({});
+  const [menuTarefa, setMenuTarefa] = useState(null);
 
   useEffect(() => {
     const ultimos7 = gerarUltimos7Dias();
@@ -64,6 +61,26 @@ export default function HistoricoScreen({ idUsuario, onVoltar }) {
     const tarefas = registros[data] || [];
     const feitas = tarefas.filter(t => t.status_dia === 'feito').length;
     return { total: tarefas.length, feitas };
+  }
+
+  function excluirTarefa(idMedicamento) {
+    Alert.alert(
+      'Excluir tarefa',
+      'Tem certeza que deseja excluir esta tarefa?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: () => {
+            db.runSync('DELETE FROM historico_uso WHERE id_medicamento = ?', [idMedicamento]);
+            db.runSync('DELETE FROM medicamento WHERE id_medicamento = ?', [idMedicamento]);
+            setMenuTarefa(null);
+            carregarRegistros(dias);
+          }
+        }
+      ]
+    );
   }
 
   return (
@@ -106,7 +123,12 @@ export default function HistoricoScreen({ idUsuario, onVoltar }) {
                     const icone = ICONES[tarefa.icone_tipo] || ICONES.remedio;
                     const feito = tarefa.status_dia === 'feito';
                     return (
-                      <View key={tarefa.id_medicamento} style={[styles.tarefaCard, feito && styles.tarefaCardFeito]}>
+                      <TouchableOpacity
+                        key={tarefa.id_medicamento}
+                        style={[styles.tarefaCard, feito && styles.tarefaCardFeito]}
+                        onPress={() => setMenuTarefa(tarefa)}
+                        activeOpacity={0.7}
+                      >
                         {icone.imagem ? (
                           <Image source={icone.imagem} style={styles.tarefaIconeImagem} />
                         ) : (
@@ -119,7 +141,7 @@ export default function HistoricoScreen({ idUsuario, onVoltar }) {
                         <View style={[styles.statusBadge, feito ? styles.statusFeito : styles.statusPendente]}>
                           <Text style={styles.statusTexto}>{feito ? 'Feito ✓' : 'Não realizado'}</Text>
                         </View>
-                      </View>
+                      </TouchableOpacity>
                     );
                   })
                 )}
@@ -130,6 +152,33 @@ export default function HistoricoScreen({ idUsuario, onVoltar }) {
       })}
 
       <View style={{ height: 40 }} />
+
+      <Modal
+        visible={!!menuTarefa}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuTarefa(null)}
+      >
+        <TouchableOpacity style={styles.modalOverlay} onPress={() => setMenuTarefa(null)}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalData}>{menuTarefa?.titulo}</Text>
+            <TouchableOpacity
+              style={styles.modalOpcao}
+              onPress={() => { setMenuTarefa(null); onEditTarefa(menuTarefa); }}
+            >
+              <Text style={styles.modalOpcaoTexto}>✏️ Editar tarefa</Text>
+            </TouchableOpacity>
+            <View style={styles.modalDivisor} />
+            <TouchableOpacity
+              style={styles.modalOpcao}
+              onPress={() => excluirTarefa(menuTarefa?.id_medicamento)}
+            >
+              <Text style={[styles.modalOpcaoTexto, styles.modalExcluir]}>🗑️ Excluir Tarefa</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
     </ScrollView>
   );
 }
@@ -138,21 +187,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background, padding: SPACING.lg },
   titulo: { fontSize: FONTS.title, fontWeight: 'bold', color: COLORS.textPrimary, marginBottom: SPACING.xs },
   subtitulo: { fontSize: FONTS.medium, color: COLORS.textSecondary, marginBottom: SPACING.lg },
-  diaContainer: {
-    marginBottom: SPACING.sm,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    overflow: 'hidden',
-  },
-  diaHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: SPACING.md,
-    backgroundColor: COLORS.surface,
-    minHeight: 81,
-  },
+  diaContainer: { marginBottom: SPACING.sm, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, overflow: 'hidden' },
+  diaHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: SPACING.md, backgroundColor: COLORS.surface, minHeight: 81 },
   diaHeaderCompleto: { backgroundColor: '#eef0ff' },
   diaHeaderEsq: { flex: 1 },
   diaLabel: { fontSize: FONTS.large, fontWeight: 'bold', color: COLORS.textPrimary },
@@ -162,15 +198,7 @@ const styles = StyleSheet.create({
   seta: { fontSize: FONTS.large, color: COLORS.textMuted },
   diaConteudo: { padding: SPACING.md, backgroundColor: COLORS.background },
   vazioTexto: { fontSize: FONTS.medium, color: COLORS.textMuted, textAlign: 'center', paddingVertical: SPACING.md },
-  tarefaCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: SPACING.md,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: SPACING.sm,
-  },
+  tarefaCard: { flexDirection: 'row', alignItems: 'center', padding: SPACING.md, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, marginBottom: SPACING.sm },
   tarefaCardFeito: { borderColor: COLORS.primary, backgroundColor: '#f0f4ff' },
   tarefaEmoji: { fontSize: 28, marginRight: SPACING.md },
   tarefaIconeImagem: { width: 36, height: 36, resizeMode: 'contain', marginRight: SPACING.md },
@@ -181,4 +209,11 @@ const styles = StyleSheet.create({
   statusFeito: { backgroundColor: COLORS.primary },
   statusPendente: { backgroundColor: COLORS.disabled },
   statusTexto: { color: COLORS.white, fontWeight: 'bold', fontSize: FONTS.small },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
+  modalBox: { backgroundColor: COLORS.white, borderRadius: 16, width: 292, elevation: 8, overflow: 'hidden' },
+  modalData: { fontSize: FONTS.small, fontWeight: 'bold', color: COLORS.textMuted, padding: SPACING.md, paddingBottom: 8 },
+  modalDivisor: { height: 1, backgroundColor: COLORS.surface },
+  modalOpcao: { padding: SPACING.lg },
+  modalOpcaoTexto: { fontSize: FONTS.large, color: COLORS.textPrimary },
+  modalExcluir: { color: COLORS.danger },
 });
