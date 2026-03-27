@@ -63,7 +63,8 @@ export default function MudarPerfilScreen({ idUsuarioAtivo, onSelecionar, onVolt
           onPress={() => onSelecionar(perfil.id_usuario)}
           activeOpacity={0.7}
         >
-          <View style={styles.cardConteudo}>
+          {/* Linha superior — avatar + info + ativo */}
+          <View style={styles.cardTopo}>
             <View style={styles.avatar}>
               <Text style={styles.avatarTexto}>
                 {perfil.name.charAt(0).toUpperCase()}
@@ -71,25 +72,29 @@ export default function MudarPerfilScreen({ idUsuarioAtivo, onSelecionar, onVolt
             </View>
             <View style={styles.cardInfo}>
               <Text style={styles.cardNome}>{perfil.name}</Text>
-              <Text style={styles.cardIdade}>{perfil.idade} anos</Text>
-              {perfil.descricao ? <Text style={styles.cardDescricao}>{perfil.descricao}</Text> : null}
+              <Text style={styles.cardIdade}>{perfil.idade} Anos</Text>
             </View>
             {perfil.id_usuario === idUsuarioAtivo && (
-              <Text style={styles.ativo}>✓ Ativo</Text>
+              <View style={styles.ativoBadge}>
+                <Text style={styles.ativoTexto}>✓ Ativo</Text>
+              </View>
             )}
           </View>
-          <View style={styles.acoes}>
+
+          {/* Linha inferior — botões editar e excluir */}
+          <View style={styles.cardAcoes}>
             <TouchableOpacity
               style={styles.botaoAcao}
               onPress={() => onEditarPerfil(perfil.id_usuario)}
             >
-              <Text style={styles.botaoAcaoTexto}>✏️</Text>
+              <Text style={styles.botaoAcaoTexto}>✏️ Editar</Text>
             </TouchableOpacity>
+            <View style={styles.acoesDivisor} />
             <TouchableOpacity
               style={styles.botaoAcao}
               onPress={() => excluirPerfil(perfil)}
             >
-              <Text style={styles.botaoAcaoTexto}>🗑️</Text>
+              <Text style={[styles.botaoAcaoTexto, styles.botaoExcluirTexto]}>🗑️ Excluir</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -98,9 +103,10 @@ export default function MudarPerfilScreen({ idUsuarioAtivo, onSelecionar, onVolt
       <View style={styles.divisor} />
 
       <BotaoAcessivel
-        titulo="+ Adicionar novo perfil"
+        titulo="+ Adicionar Novo Perfil"
         onPress={() => onSelecionar('novo')}
         variante="secundario"
+        style={{ marginHorizontal: SPACING.lg }}
       />
 
       <View style={{ height: 40 }} />
@@ -115,14 +121,18 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: 16,
-    padding: SPACING.md,
     marginBottom: SPACING.md,
     borderWidth: 2,
     borderColor: COLORS.border,
-    minHeight: MIN_TOUCH + 16,
+    overflow: 'hidden',
   },
   cardAtivo: { borderColor: COLORS.primary, backgroundColor: '#eef0ff' },
-  cardConteudo: { flex: 1, flexDirection: 'row', alignItems: 'center', marginBottom: SPACING.sm },
+  cardTopo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: SPACING.md,
+    paddingBottom: SPACING.sm,
+  },
   avatar: {
     width: 56,
     height: 56,
@@ -136,10 +146,23 @@ const styles = StyleSheet.create({
   cardInfo: { flex: 1 },
   cardNome: { fontSize: FONTS.large, fontWeight: 'bold', color: COLORS.textPrimary },
   cardIdade: { fontSize: FONTS.medium, color: COLORS.textSecondary, marginTop: 2 },
-  cardDescricao: { fontSize: FONTS.small, color: COLORS.textMuted, marginTop: 4 },
-  ativo: { fontSize: FONTS.small, color: COLORS.primary, fontWeight: 'bold' },
-  acoes: { flexDirection: 'row', justifyContent: 'flex-end' },
-  botaoAcao: { padding: SPACING.sm, minHeight: MIN_TOUCH, justifyContent: 'center', paddingHorizontal: SPACING.md },
-  botaoAcaoTexto: { fontSize: 24 },
+  ativoBadge: { paddingHorizontal: SPACING.sm },
+  ativoTexto: { fontSize: FONTS.medium, color: COLORS.primary, fontWeight: 'bold' },
+  cardAcoes: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    marginTop: SPACING.xs,
+  },
+  botaoAcao: {
+    flex: 1,
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+    minHeight: MIN_TOUCH,
+    justifyContent: 'center',
+  },
+  acoesDivisor: { width: 1, backgroundColor: COLORS.border },
+  botaoAcaoTexto: { fontSize: FONTS.large, color: COLORS.primary, fontWeight: '600' },
+  botaoExcluirTexto: { color: COLORS.danger },
   divisor: { height: 1, backgroundColor: COLORS.border, marginVertical: SPACING.lg },
 });
