@@ -43,10 +43,14 @@ export async function solicitarPermissao() {
 export async function marcarTarefaFeita(idMedicamento) {
   const hoje = new Date().toISOString().split('T')[0];
   const agora = new Date().toTimeString().slice(0, 5);
+  console.log('Marcando tarefa:', idMedicamento, 'data:', hoje);
+  
   const existe = db.getFirstSync(
     'SELECT id_registro FROM historico_uso WHERE id_medicamento = ? AND data_execucao = ?',
     [idMedicamento, hoje]
   );
+  console.log('Registro existente:', existe);
+  
   if (existe) {
     db.runSync(
       'UPDATE historico_uso SET status = ?, horario_confirmacao = ? WHERE id_registro = ?',
@@ -58,6 +62,8 @@ export async function marcarTarefaFeita(idMedicamento) {
       [idMedicamento, hoje, 'feito', agora]
     );
   }
+  console.log('Tarefa marcada como feita!');
+
   // Cancela a notificação após marcar como feito
   await Notifications.dismissNotificationAsync(
     `tarefa_${idMedicamento}_dia_${new Date().getDay()}`

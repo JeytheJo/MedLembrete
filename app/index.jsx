@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
 import * as Notifications from 'expo-notifications';
-import { initDatabase } from '../src/database/database';
-import db from '../src/database/database';
+import { useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
+import db, { initDatabase } from '../src/database/database';
 import CadastroScreen from '../src/screens/CadastroScreen';
-import HomeScreen from '../src/screens/HomeScreen';
 import CadastroTarefaScreen from '../src/screens/CadastroTarefaScreen';
-import MudarPerfilScreen from '../src/screens/MudarPerfilScreen';
 import EditarPerfilScreen from '../src/screens/EditarPerfilScreen';
 import HistoricoScreen from '../src/screens/HistoricoScreen';
-import { agendarNotificacoesPerfil, solicitarPermissao, configurarCanal } from '../src/services/notificacoes';
+import HomeScreen from '../src/screens/HomeScreen';
+import MudarPerfilScreen from '../src/screens/MudarPerfilScreen';
+import { agendarNotificacoesPerfil, configurarCanal, marcarTarefaFeita, solicitarPermissao } from '../src/services/notificacoes';
 
 export default function Index() {
   const [carregando, setCarregando] = useState(true);
@@ -16,7 +16,6 @@ export default function Index() {
   const [tela, setTela] = useState('home');
   const [tarefaEditando, setTarefaEditando] = useState(null);
   const [idPerfilEditando, setIdPerfilEditando] = useState(null);
-  const notificationListener = useRef();
   const responseListener = useRef();
 
   useEffect(() => {
@@ -32,33 +31,32 @@ export default function Index() {
     setCarregando(false);
 
     // Escuta ações nas notificações
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(async response => {
       const actionId = response.actionIdentifier;
       const idMedicamento = response.notification.request.content.data?.idMedicamento;
 
       if (actionId === 'MARCAR_FEITO' && idMedicamento) {
-        const hoje = new Date().toISOString().split('T')[0];
-        const agora = new Date().toTimeString().slice(0, 5);
-        const existe = db.getFirstSync(
-          'SELECT id_registro FROM historico_uso WHERE id_medicamento = ? AND data_execucao = ?',
-          [idMedicamento, hoje]
-        );
-        if (existe) {
-          db.runSync(
-            'UPDATE historico_uso SET status = ?, horario_confirmacao = ? WHERE id_registro = ?',
-            ['feito', agora, existe.id_registro]
-          );
-        } else {
-          db.runSync(
-            'INSERT INTO historico_uso (id_medicamento, data_execucao, status, horario_confirmacao) VALUES (?, ?, ?, ?)',
-            [idMedicamento, hoje, 'feito', agora]
-          );
-        }
+        await marcarTarefaFeita(idMedicamento);
+      }
+    });
+
+    // Recarrega home quando app volta ao foreground
+    const subscription = AppState.addEventListener('change', nextState => {
+      if (nextState === 'active') {
+        setTela(t => {
+          if (t === 'home') return 'home_reload';
+          return t;
+        });
+        setTimeout(() => setTela(t => {
+          if (t === 'home_reload') return 'home';
+          return t;
+        }), 100);
       }
     });
 
     return () => {
-      Notifications.removeNotificationSubscription(responseListener.current);
+      responseListener.current?.remove();
+      subscription.remove();
     };
   }, []);
 
