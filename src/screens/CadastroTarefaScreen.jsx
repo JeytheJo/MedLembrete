@@ -1,3 +1,4 @@
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useState } from 'react';
 import {
   Alert, Image,
@@ -16,6 +17,7 @@ const DIAS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 export default function CadastroTarefaScreen({ idUsuario, tarefaExistente, onSalvar, onVoltar }) {
   const editando = !!tarefaExistente;
 
+  const [mostrarPicker, setMostrarPicker] = useState(false)
   const [titulo, setTitulo] = useState(tarefaExistente?.titulo || '');
   const [subtitulo, setSubtitulo] = useState(tarefaExistente?.subtitulo_instrucao || '');
   const [horario, setHorario] = useState(tarefaExistente?.horario_programado || '08:00');
@@ -99,14 +101,34 @@ export default function CadastroTarefaScreen({ idUsuario, tarefaExistente, onSal
       />
 
       <Text style={styles.secao}>Horário</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="08:00"
-        placeholderTextColor={COLORS.textMuted}
-        value={horario}
-        onChangeText={setHorario}
-        keyboardType="numbers-and-punctuation"
-      />
+      <TouchableOpacity
+        style={styles.inputHorario}
+        onPress={() => setMostrarPicker(true)}
+      >
+        <Text style={styles.inputHorarioTexto}>{horario}</Text>
+      </TouchableOpacity>
+
+      {mostrarPicker && (
+        <DateTimePicker
+          value={(() => {
+            const [h, m] = horario.split(':').map(Number);
+            const d = new Date();
+            d.setHours(h, m, 0, 0);
+            return d;
+          })()}
+          mode="time"
+          is24Hour={true}
+          display="default"
+          onChange={(event, selectedDate) => {
+            setMostrarPicker(false);
+            if (selectedDate) {
+              const h = selectedDate.getHours().toString().padStart(2, '0');
+              const m = selectedDate.getMinutes().toString().padStart(2, '0');
+              setHorario(`${h}:${m}`);
+            }
+          }}
+        />
+      )}
 
       <Text style={styles.secao}>Dias da semana</Text>
       <View style={styles.diasContainer}>
@@ -150,16 +172,16 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background, padding: SPACING.lg },
   titulo: { fontSize: FONTS.title, fontWeight: 'bold', color: COLORS.textPrimary, marginBottom: SPACING.xs },
   secao: { fontSize: FONTS.medium, fontWeight: '700', color: COLORS.textSecondary, marginTop: SPACING.lg, marginBottom: SPACING.sm },
-  input: {
+  inputHorario: {
     backgroundColor: COLORS.surface,
     borderRadius: 12,
     padding: SPACING.md,
-    fontSize: FONTS.large,
-    color: COLORS.textPrimary,
     borderWidth: 2,
     borderColor: COLORS.border,
     minHeight: 56,
+    justifyContent: 'center',
   },
+inputHorarioTexto: { fontSize: FONTS.large, color: COLORS.textPrimary },
   inputMultiline: { height: 120, textAlignVertical: 'top' },
   iconesList: { marginBottom: 4 },
   iconeOpcao: {

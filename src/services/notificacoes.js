@@ -9,6 +9,17 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// Registra o canal de notificação com ação clicável
+export async function configurarCanal() {
+  await Notifications.setNotificationCategoryAsync('tarefa', [
+    {
+      identifier: 'MARCAR_FEITO',
+      buttonTitle: 'Tarefa realizada',
+      options: { opensAppToForeground: false },
+    },
+  ]);
+}
+
 export async function solicitarPermissao() {
   const { status: existente } = await Notifications.getPermissionsAsync();
   if (existente === 'granted') return true;
@@ -43,6 +54,7 @@ export async function agendarNotificacaoTarefa(tarefa) {
         title: `⏰ ${tarefa.titulo}`,
         body: tarefa.subtitulo_instrucao || 'Hora de realizar esta tarefa!',
         sound: true,
+        categoryIdentifier: 'tarefa',
         data: { idMedicamento: tarefa.id_medicamento },
       },
       trigger: {
